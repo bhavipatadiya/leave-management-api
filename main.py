@@ -10,38 +10,30 @@ import logging
 import os
 from dotenv import load_dotenv
 
-
-# Load environment variables
+# ================= LOAD ENV ================= #
 load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY", "mysecretkey")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./leave.db")
 
-
-# Initialize FastAPI app
+# ================= APP ================= #
 app = FastAPI()
 
-
-# Logging setup
+# ================= LOGGING ================= #
 logging.basicConfig(level=logging.INFO)
 
-
-# Database setup
-DATABASE_URL = "sqlite:///./leave.db"
-
+# ================= DATABASE ================= #
 engine = create_engine(
     DATABASE_URL, connect_args={"check_same_thread": False}
 )
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
-
-# Password hashing
+# ================= PASSWORD ================= #
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"])
 
-
 # ================= MODELS ================= #
-
 class User(Base):
     __tablename__ = "users"
 
@@ -66,14 +58,13 @@ class Leave(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
-# Create tables on startup
+# ================= STARTUP ================= #
 @app.on_event("startup")
 def on_startup():
     Base.metadata.create_all(bind=engine)
 
 
 # ================= SCHEMAS ================= #
-
 class UserCreate(BaseModel):
     username: str
     password: str
@@ -109,8 +100,7 @@ class LeaveResponse(BaseModel):
         from_attributes = True
 
 
-# ================= DEPENDENCY ================= #
-
+# ================= DB DEPENDENCY ================= #
 def get_db():
     db = SessionLocal()
     try:
@@ -119,8 +109,7 @@ def get_db():
         db.close()
 
 
-# ================= AUTH FUNCTIONS ================= #
-
+# ================= AUTH ================= #
 def hash_password(password: str):
     return pwd_context.hash(password)
 
@@ -142,13 +131,15 @@ def get_current_user(token: str):
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
-# ================= LOGGING ================= #
-
+# ================= LOG FUNCTION ================= #
 def log_action(message: str):
     logging.info(message)
 
 
-# ================= HEALTH CHECK ================= #
+# ================= ROOT + HEALTH ================= #
+@app.get("/")
+def root():
+    return {"message": "API is running"}
 
 @app.get("/health")
 def health():
@@ -156,7 +147,6 @@ def health():
 
 
 # ================= AUTH ROUTES ================= #
-
 @app.post("/signup")
 def signup(user: UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.username == user.username).first()
@@ -194,7 +184,6 @@ def login(user: UserCreate, db: Session = Depends(get_db)):
 
 
 # ================= LEAVE ROUTES ================= #
-
 @app.post("/leaves/", response_model=LeaveResponse)
 def apply_leave(
     leave: LeaveRequest,
