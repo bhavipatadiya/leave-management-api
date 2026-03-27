@@ -9,6 +9,7 @@ It allows employees to apply for leave and managers to approve or reject request
 - Uvicorn
 - SQLite
 - SQLAlchemy
+- Pydantic
 - JWT Authentication
   
 # Features
