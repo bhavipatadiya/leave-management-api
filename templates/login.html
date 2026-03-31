@@ -66,71 +66,54 @@ button:hover {
 </div>
 
 <script>
+
 let savedToken = "";
 let redirectUrl = "";
 
-async function login() {
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
+async function login(){
 
-    if(!username || !password){
-        alert("Please enter username and password");
+   
+    if(savedToken){
+        window.location.href = redirectUrl;
         return;
     }
 
+    const formData = new FormData();
+    formData.append("username", document.getElementById("username").value);
+    formData.append("password", document.getElementById("password").value);
+
+    const res = await fetch("/login", {
+        method: "POST",
+        body: formData,
+        redirect: "follow"
+    });
+
    
-    if(!savedToken){
-        const formData = new FormData();
-        formData.append("username", username);
-        formData.append("password", password); 
+    const finalUrl = res.url;
 
-        try {
-            const res = await fetch("/login", {
-                method: "POST",
-                body: formData,
-                redirect: "manual" 
-            });
+    if(finalUrl.includes("token=")){
 
-            const finalUrl = res.headers.get("location") || "";
-            if(finalUrl.includes("?token=")){
-                const url = new URL(finalUrl, window.location.origin);
-                savedToken = url.searchParams.get("token");
-                redirectUrl = finalUrl;
+        const url = new URL(finalUrl);
+        savedToken = url.searchParams.get("token");
+        redirectUrl = finalUrl;
 
-                const box = document.getElementById("tokenBox");
-                box.style.display = "block";
-                box.innerHTML = `
-                    <b> COPY THIS TOKEN:</b><br><br>
-                    ${savedToken}<br><br>
-                    Click LOGIN again to continue
-                `;
+        const box = document.getElementById("tokenBox");
+        box.style.display = "block";
 
-                document.getElementById("loginBtn").innerText = "Go to Dashboard";
-            } else {
-               
-                savedToken = "demo-token";
-                redirectUrl = "/employee?token=demo-token";
+        box.innerHTML = `
+            <b> COPY THIS TOKEN:</b><br><br>
+            ${savedToken}<br><br>
+            👉 Click LOGIN again to continue
+        `;
 
-                const box = document.getElementById("tokenBox");
-                box.style.display = "block";
-                box.innerHTML = `
-                    <b> COPY THIS TOKEN:</b><br><br>
-                    ${savedToken}<br><br>
-                    Click LOGIN again to continue
-                `;
-                document.getElementById("loginBtn").innerText = "Go to Dashboard";
-            }
-
-        } catch (err) {
-            console.error(err);
-            alert("Error connecting to server");
-        }
+      
+        document.getElementById("loginBtn").innerText = "Go to Dashboard";
 
     } else {
-      
-        window.location.href = redirectUrl;
+        alert(" Invalid login");
     }
 }
+
 </script>
 
 </body>
