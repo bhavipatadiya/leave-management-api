@@ -13,9 +13,7 @@ import os
 from dotenv import load_dotenv
 
 
-
 load_dotenv()
-
 SECRET_KEY = os.getenv("SECRET_KEY", "mysecretkey")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
@@ -24,10 +22,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'leave.db')}"
 
 
-
 app = FastAPI()
 logging.basicConfig(level=logging.INFO)
-
 
 
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
@@ -38,12 +34,10 @@ if os.path.exists(static_path):
     app.mount("/static", StaticFiles(directory=static_path), name="static")
 
 
-
-engine = create_engine(
-    DATABASE_URL, connect_args={"check_same_thread": False}
-)
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
+
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"])
 
@@ -69,6 +63,7 @@ class Leave(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+
 @app.on_event("startup")
 def on_startup():
     Base.metadata.create_all(bind=engine)
@@ -83,11 +78,12 @@ def get_db():
         db.close()
 
 
+
 def hash_password(password: str):
     return pwd_context.hash(password)
 
 
-def verify_password(plain, hashed):
+def verify_password(plain: str, hashed: str):
     return pwd_context.verify(plain, hashed)
 
 
@@ -100,7 +96,7 @@ def create_token(data: dict):
 def get_current_user(token: str):
     try:
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    except:
+    except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
@@ -146,12 +142,9 @@ def signup(
         password=hash_password(password),
         role=role
     )
-
     db.add(user)
     db.commit()
-
     return RedirectResponse("/login-page", status_code=303)
-
 
 
 @app.post("/login")
@@ -165,17 +158,15 @@ def login(
     if not user or not verify_password(password, user.password):
         raise HTTPException(status_code=401, detail="Invalid login")
 
-    token = create_token({
-        "username": user.username,
-        "role": user.role
-    })
+    token = create_token({"username": user.username, "role": user.role})
 
-    if user.role == "employee":
-        return RedirectResponse(f"/employee?token={token}", status_code=303)
-    elif user.role == "manager":
-        return RedirectResponse(f"/manager?token={token}", status_code=303)
-    else:
-        return RedirectResponse(f"/admin?token={token}", status_code=303)
+    redirect_map = {
+        "employee": f"/employee?token={token}",
+        "manager": f"/manager?token={token}",
+        "admin": f"/admin?token={token}"
+    }
+
+    return RedirectResponse(redirect_map.get(user.role, "/login-page"), status_code=303)
 
 
 
@@ -201,10 +192,8 @@ def apply_leave(
         end_date=end_date,
         reason=reason
     )
-
     db.add(leave)
     db.commit()
-
     return {"message": "Leave applied successfully"}
 
 
@@ -212,10 +201,8 @@ def apply_leave(
 @app.get("/leaves/")
 def get_leaves(token: str = Query(...), db: Session = Depends(get_db)):
     user = get_current_user(token)
-
     if user["role"] not in ["manager", "admin"]:
         raise HTTPException(status_code=403, detail="Access denied")
-
     return db.query(Leave).all()
 
 
@@ -228,12 +215,10 @@ def update_leave(
     db: Session = Depends(get_db)
 ):
     user = get_current_user(token)
-
     if user["role"] != "manager":
         raise HTTPException(status_code=403, detail="Only manager allowed")
 
     leave = db.query(Leave).filter(Leave.id == leave_id).first()
-
     if not leave:
         raise HTTPException(status_code=404, detail="Leave not found")
 
@@ -242,7 +227,6 @@ def update_leave(
 
     leave.status = "approved" if action == "approve" else "rejected"
     db.commit()
-
     return {"message": f"Leave {leave.status}"}
 
 
