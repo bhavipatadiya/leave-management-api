@@ -51,8 +51,6 @@ button:hover {
 }
 </style>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-
 </head>
 
 <body>
@@ -72,7 +70,7 @@ button:hover {
 let savedToken = "";
 let redirectUrl = "";
 
-async function login(){
+async function login() {
     const username = document.getElementById("username").value;
     const password = document.getElementById("password").value;
 
@@ -81,18 +79,15 @@ async function login(){
         return;
     }
 
-   
+    // If token already saved, redirect
     if(savedToken){
         window.location.href = redirectUrl;
         return;
     }
 
-
-    const hashedPassword = CryptoJS.SHA256(password).toString();
-
     const formData = new FormData();
     formData.append("username", username);
-    formData.append("password", hashedPassword);
+    formData.append("password", password); // plain password
 
     try {
         const res = await fetch("/login", {
@@ -101,7 +96,6 @@ async function login(){
             redirect: "follow"
         });
 
-        
         const finalUrl = res.url;
 
         if(finalUrl.includes("?token=")){
@@ -120,9 +114,9 @@ async function login(){
 
             document.getElementById("loginBtn").innerText = "Go to Dashboard";
         } else {
-         
             alert("Invalid login");
         }
+
     } catch (err) {
         console.error(err);
         alert("Error connecting to server");
