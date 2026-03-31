@@ -1,4 +1,4 @@
-\<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 <title>Login</title>
@@ -50,10 +50,6 @@ button:hover {
     border-radius: 5px;
 }
 </style>
-
-<!-- CryptoJS for SHA256 hashing -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-
 </head>
 
 <body>
@@ -70,25 +66,21 @@ button:hover {
 </div>
 
 <script>
+
 let savedToken = "";
 let redirectUrl = "";
 
 async function login(){
 
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
-
-    if(!username || !password){
-        alert("Please enter username and password");
+   
+    if(savedToken){
+        window.location.href = redirectUrl;
         return;
     }
 
-    // Hash the password in the browser before sending
-    const hashedPassword = CryptoJS.SHA256(password).toString();
-
     const formData = new FormData();
-    formData.append("username", username);
-    formData.append("password", hashedPassword);
+    formData.append("username", document.getElementById("username").value);
+    formData.append("password", document.getElementById("password").value);
 
     const res = await fetch("/login", {
         method: "POST",
@@ -96,9 +88,11 @@ async function login(){
         redirect: "follow"
     });
 
+   
     const finalUrl = res.url;
 
     if(finalUrl.includes("token=")){
+
         const url = new URL(finalUrl);
         savedToken = url.searchParams.get("token");
         redirectUrl = finalUrl;
@@ -109,15 +103,17 @@ async function login(){
         box.innerHTML = `
             <b> COPY THIS TOKEN:</b><br><br>
             ${savedToken}<br><br>
-            Click LOGIN again to continue
+             Click LOGIN again to continue
         `;
 
+      
         document.getElementById("loginBtn").innerText = "Go to Dashboard";
 
     } else {
-        alert("Invalid login");
+        alert(" Invalid login");
     }
 }
+
 </script>
 
 </body>
