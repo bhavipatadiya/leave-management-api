@@ -18,7 +18,10 @@ load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY", "mysecretkey")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./leave.db")
+
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'leave.db')}"
 
 
 
@@ -27,13 +30,13 @@ logging.basicConfig(level=logging.INFO)
 
 
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 
 static_path = os.path.join(BASE_DIR, "static")
 if os.path.exists(static_path):
     app.mount("/static", StaticFiles(directory=static_path), name="static")
+
 
 
 engine = create_engine(
@@ -43,6 +46,7 @@ SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"])
+
 
 
 class User(Base):
@@ -70,6 +74,7 @@ def on_startup():
     Base.metadata.create_all(bind=engine)
 
 
+
 def get_db():
     db = SessionLocal()
     try:
@@ -87,7 +92,7 @@ def verify_password(plain, hashed):
 
 
 def create_token(data: dict):
-    to_encode = data.copy()   
+    to_encode = data.copy()
     to_encode["exp"] = datetime.utcnow() + timedelta(hours=2)
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -100,45 +105,29 @@ def get_current_user(token: str):
 
 
 
-
 @app.get("/", response_class=HTMLResponse)
 def signup_page(request: Request):
-    return templates.TemplateResponse(
-        "signup.html",
-        {"request": request}
-    )
+    return templates.TemplateResponse("signup.html", {"request": request})
 
 
 @app.get("/login-page", response_class=HTMLResponse)
 def login_page(request: Request):
-    return templates.TemplateResponse(
-        "login.html",
-        {"request": request}
-    )
+    return templates.TemplateResponse("login.html", {"request": request})
 
 
 @app.get("/employee", response_class=HTMLResponse)
 def employee_page(request: Request, token: str):
-    return templates.TemplateResponse(
-        "employee.html",
-        {"request": request, "token": token}
-    )
+    return templates.TemplateResponse("employee.html", {"request": request, "token": token})
 
 
 @app.get("/manager", response_class=HTMLResponse)
 def manager_page(request: Request, token: str):
-    return templates.TemplateResponse(
-        "manager.html",
-        {"request": request, "token": token}
-    )
+    return templates.TemplateResponse("manager.html", {"request": request, "token": token})
 
 
 @app.get("/admin", response_class=HTMLResponse)
 def admin_page(request: Request, token: str):
-    return templates.TemplateResponse(
-        "admin.html",
-        {"request": request, "token": token}
-    )
+    return templates.TemplateResponse("admin.html", {"request": request, "token": token})
 
 
 
