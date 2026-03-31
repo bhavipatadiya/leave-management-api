@@ -22,12 +22,11 @@
             text-align: center;
         }
 
-       
         input, select, button {
             width: 100%;
             padding: 10px;
             margin: 10px 0;
-            box-sizing: border-box; /* important */
+            box-sizing: border-box;
         }
 
         button {
@@ -47,6 +46,18 @@
         }
     </style>
 
+    <!-- CryptoJS Library for hashing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
+    <script>
+        // Hash password before submitting form
+        function hashPassword(form) {
+            const passwordInput = form.querySelector('input[name="password"]');
+            const hashed = CryptoJS.SHA256(passwordInput.value).toString();
+            passwordInput.value = hashed;
+            return true; // allow form submission
+        }
+    </script>
 </head>
 
 <body>
@@ -54,7 +65,8 @@
 <div class="container">
     <h2>Signup</h2>
 
-    <form action="/signup" method="post">
+    <!-- Added onsubmit to hash password -->
+    <form action="/signup" method="post" onsubmit="return hashPassword(this)">
         <input type="text" name="username" placeholder="Username" required>
 
         <input type="password" name="password" placeholder="Password" required>
@@ -68,7 +80,6 @@
         <button type="submit">Signup</button>
     </form>
 
-    
     <a href="/login-page">Already have account? Login</a>
 </div>
 
