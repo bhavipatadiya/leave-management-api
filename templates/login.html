@@ -66,19 +66,21 @@ button:hover {
 </div>
 
 <script>
-let savedToken = "";
-let redirectUrl = "";
-
 async function login() {
     const username = document.getElementById("username").value;
     const password = document.getElementById("password").value;
 
-    // If token already saved, go to dashboard
-    if(savedToken){
+    // Check if token already exists
+    let savedToken = localStorage.getItem("savedToken");
+    let redirectUrl = localStorage.getItem("redirectUrl");
+
+    if (savedToken && redirectUrl) {
+        // Redirect to dashboard immediately
         window.location.href = redirectUrl;
         return;
     }
 
+    // Send login request
     const formData = new FormData();
     formData.append("username", username);
     formData.append("password", password);
@@ -86,28 +88,50 @@ async function login() {
     const res = await fetch("/login", {
         method: "POST",
         body: formData,
-        redirect: "manual" // <-- important to get redirect URL
+        redirect: "manual"
     });
 
-    // Get the redirect URL from response headers
+    // Get redirect URL from headers
     const finalUrl = res.headers.get("location");
 
     if(finalUrl && finalUrl.includes("token=")){
         const url = new URL(finalUrl, window.location.origin);
-        savedToken = url.searchParams.get("token");
-        redirectUrl = finalUrl;
+        const token = url.searchParams.get("token");
 
+        // Save token and redirect URL in localStorage
+        localStorage.setItem("savedToken", token);
+        localStorage.setItem("redirectUrl", finalUrl);
+
+        // Show token to user
         const box = document.getElementById("tokenBox");
         box.style.display = "block";
         box.innerHTML = `
             <b>COPY THIS TOKEN:</b><br><br>
-            ${savedToken}<br><br>
+            ${token}<br><br>
             Click LOGIN again to continue
         `;
 
+        // Update button text
         document.getElementById("loginBtn").innerText = "Go to Dashboard";
+    } else {
+        alert("Login failed! Check your credentials.");
     }
 }
+
+// Auto-fill token box if token exists
+window.addEventListener("DOMContentLoaded", () => {
+    const token = localStorage.getItem("savedToken");
+    if(token){
+        const box = document.getElementById("tokenBox");
+        box.style.display = "block";
+        box.innerHTML = `
+            <b>COPY THIS TOKEN:</b><br><br>
+            ${token}<br><br>
+            Click LOGIN again to continue
+        `;
+        document.getElementById("loginBtn").innerText = "Go to Dashboard";
+    }
+});
 </script>
 
 </body>
