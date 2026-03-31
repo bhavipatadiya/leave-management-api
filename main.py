@@ -26,10 +26,14 @@ app = FastAPI()
 logging.basicConfig(level=logging.INFO)
 
 
-templates = Jinja2Templates(directory="templates")
 
-if os.path.exists("static"):
-    app.mount("/static", StaticFiles(directory="static"), name="static")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
+
+static_path = os.path.join(BASE_DIR, "static")
+if os.path.exists(static_path):
+    app.mount("/static", StaticFiles(directory=static_path), name="static")
 
 
 engine = create_engine(
@@ -66,7 +70,6 @@ def on_startup():
     Base.metadata.create_all(bind=engine)
 
 
-
 def get_db():
     db = SessionLocal()
     try:
@@ -84,8 +87,9 @@ def verify_password(plain, hashed):
 
 
 def create_token(data: dict):
-    data["exp"] = datetime.utcnow() + timedelta(hours=2)
-    return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
+    to_encode = data.copy()   
+    to_encode["exp"] = datetime.utcnow() + timedelta(hours=2)
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def get_current_user(token: str):
@@ -99,27 +103,42 @@ def get_current_user(token: str):
 
 @app.get("/", response_class=HTMLResponse)
 def signup_page(request: Request):
-    return templates.TemplateResponse("signup.html", {"request": request})
+    return templates.TemplateResponse(
+        "signup.html",
+        {"request": request}
+    )
 
 
 @app.get("/login-page", response_class=HTMLResponse)
 def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(
+        "login.html",
+        {"request": request}
+    )
 
 
 @app.get("/employee", response_class=HTMLResponse)
 def employee_page(request: Request, token: str):
-    return templates.TemplateResponse("employee.html", {"request": request, "token": token})
+    return templates.TemplateResponse(
+        "employee.html",
+        {"request": request, "token": token}
+    )
 
 
 @app.get("/manager", response_class=HTMLResponse)
 def manager_page(request: Request, token: str):
-    return templates.TemplateResponse("manager.html", {"request": request, "token": token})
+    return templates.TemplateResponse(
+        "manager.html",
+        {"request": request, "token": token}
+    )
 
 
 @app.get("/admin", response_class=HTMLResponse)
 def admin_page(request: Request, token: str):
-    return templates.TemplateResponse("admin.html", {"request": request, "token": token})
+    return templates.TemplateResponse(
+        "admin.html",
+        {"request": request, "token": token}
+    )
 
 
 
@@ -178,7 +197,7 @@ def apply_leave(
     start_date: date = Form(...),
     end_date: date = Form(...),
     reason: str = Form(...),
-    token: str = Form(...),   # ✅ FIXED (was Query)
+    token: str = Form(...),
     db: Session = Depends(get_db)
 ):
     user = get_current_user(token)
@@ -216,7 +235,7 @@ def get_leaves(token: str = Query(...), db: Session = Depends(get_db)):
 def update_leave(
     leave_id: int,
     action: str = Form(...),
-    token: str = Form(...),  
+    token: str = Form(...),
     db: Session = Depends(get_db)
 ):
     user = get_current_user(token)
