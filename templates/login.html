@@ -66,54 +66,48 @@ button:hover {
 </div>
 
 <script>
-
 let savedToken = "";
 let redirectUrl = "";
 
-async function login(){
+async function login() {
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
 
-   
+    // If token already saved, go to dashboard
     if(savedToken){
         window.location.href = redirectUrl;
         return;
     }
 
     const formData = new FormData();
-    formData.append("username", document.getElementById("username").value);
-    formData.append("password", document.getElementById("password").value);
+    formData.append("username", username);
+    formData.append("password", password);
 
     const res = await fetch("/login", {
         method: "POST",
         body: formData,
-        redirect: "follow"
+        redirect: "manual" // <-- important to get redirect URL
     });
 
-   
-    const finalUrl = res.url;
+    // Get the redirect URL from response headers
+    const finalUrl = res.headers.get("location");
 
-    if(finalUrl.includes("token=")){
-
-        const url = new URL(finalUrl);
+    if(finalUrl && finalUrl.includes("token=")){
+        const url = new URL(finalUrl, window.location.origin);
         savedToken = url.searchParams.get("token");
         redirectUrl = finalUrl;
 
         const box = document.getElementById("tokenBox");
         box.style.display = "block";
-
         box.innerHTML = `
-            <b> COPY THIS TOKEN:</b><br><br>
+            <b>COPY THIS TOKEN:</b><br><br>
             ${savedToken}<br><br>
-            👉 Click LOGIN again to continue
+            Click LOGIN again to continue
         `;
 
-      
         document.getElementById("loginBtn").innerText = "Go to Dashboard";
-
-    } else {
-        alert(" Invalid login");
     }
 }
-
 </script>
 
 </body>
