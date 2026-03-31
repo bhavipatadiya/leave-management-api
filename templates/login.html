@@ -42,12 +42,10 @@ button:hover {
 #tokenBox {
     display: none;
     background: #eee;
-    padding: 12px;
+    padding: 10px;
     margin-top: 10px;
     word-wrap: break-word;
     font-size: 12px;
-    font-weight: bold;
-    border-radius: 5px;
 }
 </style>
 </head>
@@ -60,78 +58,48 @@ button:hover {
 <input id="username" placeholder="Username">
 <input id="password" type="password" placeholder="Password">
 
-<button id="loginBtn" onclick="login()">Login</button>
+<button onclick="login()">Login</button>
 
 <div id="tokenBox"></div>
 </div>
 
 <script>
-async function login() {
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
+let savedToken = "";
+let redirectUrl = "";
 
-    // Check if token already exists
-    let savedToken = localStorage.getItem("savedToken");
-    let redirectUrl = localStorage.getItem("redirectUrl");
+async function login(){
 
-    if (savedToken && redirectUrl) {
-        // Redirect to dashboard immediately
+    
+    if(savedToken){
         window.location.href = redirectUrl;
         return;
     }
 
-    // Send login request
     const formData = new FormData();
-    formData.append("username", username);
-    formData.append("password", password);
+    formData.append("username", document.getElementById("username").value);
+    formData.append("password", document.getElementById("password").value);
 
     const res = await fetch("/login", {
         method: "POST",
-        body: formData,
-        redirect: "manual"
+        body: formData
     });
 
-    // Get redirect URL from headers
-    const finalUrl = res.headers.get("location");
+    if(res.redirected){
 
-    if(finalUrl && finalUrl.includes("token=")){
-        const url = new URL(finalUrl, window.location.origin);
-        const token = url.searchParams.get("token");
+        const url = new URL(res.url);
+        savedToken = url.searchParams.get("token");
+        redirectUrl = res.url;
 
-        // Save token and redirect URL in localStorage
-        localStorage.setItem("savedToken", token);
-        localStorage.setItem("redirectUrl", finalUrl);
-
-        // Show token to user
         const box = document.getElementById("tokenBox");
         box.style.display = "block";
-        box.innerHTML = `
-            <b>COPY THIS TOKEN:</b><br><br>
-            ${token}<br><br>
-            Click LOGIN again to continue
-        `;
+        box.innerText = 
+            " Copy this TOKEN:\n\n" + savedToken + 
+            "\n\n Click LOGIN again to continue";
 
-        // Update button text
-        document.getElementById("loginBtn").innerText = "Go to Dashboard";
     } else {
-        alert("Login failed! Check your credentials.");
+        alert("Invalid login");
     }
 }
-
-// Auto-fill token box if token exists
-window.addEventListener("DOMContentLoaded", () => {
-    const token = localStorage.getItem("savedToken");
-    if(token){
-        const box = document.getElementById("tokenBox");
-        box.style.display = "block";
-        box.innerHTML = `
-            <b>COPY THIS TOKEN:</b><br><br>
-            ${token}<br><br>
-            Click LOGIN again to continue
-        `;
-        document.getElementById("loginBtn").innerText = "Go to Dashboard";
-    }
-});
 </script>
 
 </body>
