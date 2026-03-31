@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Login</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #f4f4f4;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.container {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    width: 320px;
+    box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+    text-align: center;
+}
+
+input, button {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+}
+
+button {
+    background: green;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background: darkgreen;
+}
+
+#tokenBox {
+    display: none;
+    background: #eee;
+    padding: 12px;
+    margin-top: 10px;
+    word-wrap: break-word;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 5px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h2>Login</h2>
+
+<input id="username" placeholder="Username">
+<input id="password" type="password" placeholder="Password">
+
+<button id="loginBtn" onclick="login()">Login</button>
+
+<div id="tokenBox"></div>
+</div>
+
+<script>
+
+let savedToken = "";
+let redirectUrl = "";
+
+async function login(){
+
+   
+    if(savedToken){
+        window.location.href = redirectUrl;
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("username", document.getElementById("username").value);
+    formData.append("password", document.getElementById("password").value);
+
+    const res = await fetch("/login", {
+        method: "POST",
+        body: formData,
+        redirect: "follow"
+    });
+
+   
+    const finalUrl = res.url;
+
+    if(finalUrl.includes("token=")){
+
+        const url = new URL(finalUrl);
+        savedToken = url.searchParams.get("token");
+        redirectUrl = finalUrl;
+
+        const box = document.getElementById("tokenBox");
+        box.style.display = "block";
+
+        box.innerHTML = `
+            <b> COPY THIS TOKEN:</b><br><br>
+            ${savedToken}<br><br>
+             Click LOGIN again to continue
+        `;
+
+      
+        document.getElementById("loginBtn").innerText = "Go to Dashboard";
+
+    } else {
+        alert(" Invalid login");
+    }
+}
+
+</script>
+
+</body>
+</html>

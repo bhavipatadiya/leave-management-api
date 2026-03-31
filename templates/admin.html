@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Dashboard</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #f4f4f4;
+    display: flex;
+    justify-content: center;
+}
+
+.container {
+    background: white;
+    padding: 20px;
+    width: 800px;
+    margin-top: 50px;
+    border-radius: 10px;
+}
+
+
+input, button {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+}
+
+button {
+    background: blue;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background: darkblue;
+}
+
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
+
+th {
+    background: #333;
+    color: white;
+}
+
+/* Status colors */
+.approved {
+    color: green;
+    font-weight: bold;
+}
+
+.rejected {
+    color: red;
+    font-weight: bold;
+}
+
+.pending {
+    color: orange;
+    font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h2>Admin Panel</h2>
+
+<input id="token" placeholder="Paste Admin Token">
+
+<button onclick="load()">Load Leaves</button>
+
+<div id="data"></div>
+
+<button onclick="goBack()">⬅ Back to Login</button>
+</div>
+
+<script>
+
+async function load(){
+
+    const token = document.getElementById("token").value.trim();
+
+    if(!token){
+        alert(" Please enter token");
+        return;
+    }
+
+    const res = await fetch(`/leaves/?token=${token}`);
+    const data = await res.json();
+
+    if(!res.ok){
+        alert(" " + (data.detail || "Error"));
+        return;
+    }
+
+    let html = `
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Reason</th>
+            <th>Status</th>
+        </tr>
+    `;
+
+    data.forEach(l => {
+
+        let statusClass = "";
+        if(l.status === "approved") statusClass = "approved";
+        else if(l.status === "rejected") statusClass = "rejected";
+        else statusClass = "pending";
+
+        html += `
+        <tr>
+            <td>${l.employee_name}</td>
+            <td>${l.leave_type}</td>
+            <td>${l.start_date}</td>
+            <td>${l.end_date}</td>
+            <td>${l.reason}</td>
+            <td class="${statusClass}">${l.status}</td>
+        </tr>
+        `;
+    });
+
+    html += `</table>`;
+
+    document.getElementById("data").innerHTML = html;
+}
+
+function goBack(){
+    window.location.href = "/login-page";
+}
+
+</script>
+
+</body>
+</html>

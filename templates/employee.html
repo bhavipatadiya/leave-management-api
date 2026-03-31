@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Employee Dashboard</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #f4f4f4;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.container {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    width: 350px;
+    box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+    text-align: center;
+}
+
+input, button {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+}
+
+button {
+    background: blue;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background: darkblue;
+}
+
+.token-box {
+    background: #eee;
+    padding: 10px;
+    font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h2>Apply Leave</h2>
+
+
+<input id="token" class="token-box" placeholder="Paste Token Here">
+
+<input id="emp_name" placeholder="Name">
+<input id="leave_type" placeholder="Leave Type">
+<input id="start_date" type="date">
+<input id="end_date" type="date">
+<input id="reason" placeholder="Reason">
+
+<button onclick="applyLeave()">Apply Leave</button>
+<button onclick="goBack()">⬅ Back to Login</button>
+</div>
+
+<script>
+
+async function applyLeave(){
+
+    const token = document.getElementById("token").value.trim();
+    const empName = document.getElementById("emp_name").value;
+    const leaveType = document.getElementById("leave_type").value;
+    const startDate = document.getElementById("start_date").value;
+    const endDate = document.getElementById("end_date").value;
+    const reason = document.getElementById("reason").value;
+
+   
+    if(!token){
+        alert(" Please paste your token first");
+        return;
+    }
+
+    if(!empName || !leaveType || !startDate || !endDate || !reason){
+        alert(" Please fill all fields");
+        return;
+    }
+
+    const formData = new FormData();
+
+    formData.append("employee_name", empName);
+    formData.append("leave_type", leaveType);
+    formData.append("start_date", startDate);
+    formData.append("end_date", endDate);
+    formData.append("reason", reason);
+
+   
+    formData.append("token", token);
+
+    try{
+        const res = await fetch("/apply-leave", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+
+        if(res.ok){
+            alert(" Your leave has been successfully applied!");
+
+            // clear fields
+            document.getElementById("emp_name").value = "";
+            document.getElementById("leave_type").value = "";
+            document.getElementById("start_date").value = "";
+            document.getElementById("end_date").value = "";
+            document.getElementById("reason").value = "";
+        } 
+        else {
+            let errorMsg = "";
+
+            if(typeof data.detail === "string"){
+                errorMsg = data.detail;
+            } 
+            else if(Array.isArray(data.detail)){
+                errorMsg = data.detail[0].msg;
+            } 
+            else {
+                errorMsg = "Something went wrong";
+            }
+
+            alert(" " + errorMsg);
+        }
+
+    } catch(err){
+        alert(" Server error");
+    }
+}
+
+function goBack(){
+    window.location.href = "/login-page";
+}
+
+</script>
+
+</body>
+</html>

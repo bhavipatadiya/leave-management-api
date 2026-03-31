@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Manager Dashboard</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #f4f4f4;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+/* Bigger container for table */
+.container {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 800px;
+    margin-top: 50px;
+}
+
+/* Inputs & buttons */
+input, button {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+}
+
+button {
+    background: green;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background: darkgreen;
+}
+
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
+
+th {
+    background: #007BFF;
+    color: white;
+}
+
+/* Action buttons */
+.approve {
+    background: green;
+    color: white;
+    padding: 5px;
+    margin: 2px;
+}
+
+.reject {
+    background: red;
+    color: white;
+    padding: 5px;
+    margin: 2px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h2>Manager Panel</h2>
+
+
+<input id="token" placeholder="Paste Manager Token Here">
+
+<button onclick="loadLeaves()">Load Leaves</button>
+
+<div id="data"></div>
+
+<button onclick="goBack()">⬅ Back to Login</button>
+</div>
+
+<script>
+
+async function loadLeaves(){
+
+    const token = document.getElementById("token").value.trim();
+
+    if(!token){
+        alert(" Please enter token");
+        return;
+    }
+
+    const res = await fetch(`/leaves/?token=${token}`);
+    const data = await res.json();
+
+    if(!res.ok){
+        alert(" " + (data.detail || "Error"));
+        return;
+    }
+
+    let html = `
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Action</th>
+        </tr>
+    `;
+
+    data.forEach(l => {
+        html += `
+        <tr>
+            <td>${l.employee_name}</td>
+            <td>${l.leave_type}</td>
+            <td>${l.start_date}</td>
+            <td>${l.end_date}</td>
+            <td>${l.reason}</td>
+            <td>${l.status}</td>
+            <td>
+                <button class="approve" onclick="update(${l.id}, 'approve')">Approve</button>
+                <button class="reject" onclick="update(${l.id}, 'reject')">Reject</button>
+            </td>
+        </tr>
+        `;
+    });
+
+    html += `</table>`;
+
+    document.getElementById("data").innerHTML = html;
+}
+
+async function update(id, action){
+
+    const token = document.getElementById("token").value;
+
+    const formData = new FormData();
+    formData.append("action", action);
+    formData.append("token", token);
+
+    const res = await fetch(`/update/${id}`, {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await res.json();
+
+    alert(data.message || "Updated");
+
+    loadLeaves(); 
+}
+
+function goBack(){
+    window.location.href = "/login-page";
+}
+
+</script>
+
+</body>
+</html>

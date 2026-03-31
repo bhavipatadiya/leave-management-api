@@ -32,4 +32,4 @@ It allows employees to apply for leave and managers to approve or reject request
 # Run Locally
 ```bash
 pip install -r requirements.txt
-uvicorn main:app --reload
+python -m uvicorn main:app --reload  
