@@ -50,6 +50,9 @@ button:hover {
     border-radius: 5px;
 }
 </style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
 </head>
 
 <body>
@@ -66,11 +69,17 @@ button:hover {
 </div>
 
 <script>
-
 let savedToken = "";
 let redirectUrl = "";
 
 async function login(){
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    if(!username || !password){
+        alert("Please enter username and password");
+        return;
+    }
 
    
     if(savedToken){
@@ -78,42 +87,47 @@ async function login(){
         return;
     }
 
+
+    const hashedPassword = CryptoJS.SHA256(password).toString();
+
     const formData = new FormData();
-    formData.append("username", document.getElementById("username").value);
-    formData.append("password", document.getElementById("password").value);
+    formData.append("username", username);
+    formData.append("password", hashedPassword);
 
-    const res = await fetch("/login", {
-        method: "POST",
-        body: formData,
-        redirect: "follow"
-    });
+    try {
+        const res = await fetch("/login", {
+            method: "POST",
+            body: formData,
+            redirect: "follow"
+        });
 
-   
-    const finalUrl = res.url;
+        
+        const finalUrl = res.url;
 
-    if(finalUrl.includes("token=")){
+        if(finalUrl.includes("?token=")){
+            const url = new URL(finalUrl);
+            savedToken = url.searchParams.get("token");
+            redirectUrl = finalUrl;
 
-        const url = new URL(finalUrl);
-        savedToken = url.searchParams.get("token");
-        redirectUrl = finalUrl;
+            const box = document.getElementById("tokenBox");
+            box.style.display = "block";
 
-        const box = document.getElementById("tokenBox");
-        box.style.display = "block";
+            box.innerHTML = `
+                <b> COPY THIS TOKEN:</b><br><br>
+                ${savedToken}<br><br>
+                Click LOGIN again to continue
+            `;
 
-        box.innerHTML = `
-            <b> COPY THIS TOKEN:</b><br><br>
-            ${savedToken}<br><br>
-             Click LOGIN again to continue
-        `;
-
-      
-        document.getElementById("loginBtn").innerText = "Go to Dashboard";
-
-    } else {
-        alert(" Invalid login");
+            document.getElementById("loginBtn").innerText = "Go to Dashboard";
+        } else {
+         
+            alert("Invalid login");
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Error connecting to server");
     }
 }
-
 </script>
 
 </body>
