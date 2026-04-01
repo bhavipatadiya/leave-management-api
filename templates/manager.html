@@ -39,7 +39,6 @@ button:hover {
     background: darkgreen;
 }
 
-
 table {
     width: 100%;
     border-collapse: collapse;
@@ -79,7 +78,6 @@ th {
 <div class="container">
 <h2>Manager Panel</h2>
 
-
 <input id="token" placeholder="Paste Manager Token Here">
 
 <button onclick="loadLeaves()">Load Leaves</button>
@@ -96,7 +94,7 @@ async function loadLeaves(){
     const token = document.getElementById("token").value.trim();
 
     if(!token){
-        alert(" Please enter token");
+        alert("Please enter token");
         return;
     }
 
@@ -104,7 +102,7 @@ async function loadLeaves(){
     const data = await res.json();
 
     if(!res.ok){
-        alert(" " + (data.detail || "Error"));
+        alert(data.detail || "Error");
         return;
     }
 
@@ -122,6 +120,40 @@ async function loadLeaves(){
     `;
 
     data.forEach(l => {
+
+        let actionButtons = "";
+        const status = l.status.toLowerCase();
+
+        // ✅ Approved → only Reject
+        if(status === "approved"){
+            actionButtons = `
+                <button class="reject" onclick="this.disabled=true; update(${l.id}, 'reject')">
+                    Reject
+                </button>
+            `;
+        }
+
+        // ❌ Rejected → only Approve
+        else if(status === "rejected"){
+            actionButtons = `
+                <button class="approve" onclick="this.disabled=true; update(${l.id}, 'approve')">
+                    Approve
+                </button>
+            `;
+        }
+
+        // ⏳ Pending → both
+        else {
+            actionButtons = `
+                <button class="approve" onclick="this.disabled=true; update(${l.id}, 'approve')">
+                    Approve
+                </button>
+                <button class="reject" onclick="this.disabled=true; update(${l.id}, 'reject')">
+                    Reject
+                </button>
+            `;
+        }
+
         html += `
         <tr>
             <td>${l.employee_name}</td>
@@ -130,10 +162,7 @@ async function loadLeaves(){
             <td>${l.end_date}</td>
             <td>${l.reason}</td>
             <td>${l.status}</td>
-            <td>
-                <button class="approve" onclick="update(${l.id}, 'approve')">Approve</button>
-                <button class="reject" onclick="update(${l.id}, 'reject')">Reject</button>
-            </td>
+            <td>${actionButtons}</td>
         </tr>
         `;
     });
