@@ -10,38 +10,30 @@ from sqlalchemy import create_engine, Column, Integer, String, Date, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 import logging
 import os
+import hashlib
 from dotenv import load_dotenv
-
 
 load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY", "mysecretkey")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'leave.db')}"
-
 
 app = FastAPI()
 logging.basicConfig(level=logging.INFO)
 
-
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
-
 
 static_path = os.path.join(BASE_DIR, "static")
 if os.path.exists(static_path):
     app.mount("/static", StaticFiles(directory=static_path), name="static")
 
-
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
-
-pwd_context = CryptContext(schemes=["pbkdf2_sha256"])
-
-
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 class User(Base):
     __tablename__ = "users"
@@ -49,7 +41,6 @@ class User(Base):
     username = Column(String, unique=True)
     password = Column(String)
     role = Column(String)
-
 
 class Leave(Base):
     __tablename__ = "leaves"
@@ -62,12 +53,9 @@ class Leave(Base):
     status = Column(String, default="pending")
     created_at = Column(DateTime, default=datetime.utcnow)
 
-
 @app.on_event("startup")
 def on_startup():
     Base.metadata.create_all(bind=engine)
-
-
 
 def get_db():
     db = SessionLocal()
@@ -76,21 +64,16 @@ def get_db():
     finally:
         db.close()
 
-
-
 def hash_password(password: str):
     return pwd_context.hash(password)
 
-
 def verify_password(plain: str, hashed: str):
     return pwd_context.verify(plain, hashed)
-
 
 def create_token(data: dict):
     to_encode = data.copy()
     to_encode["exp"] = datetime.utcnow() + timedelta(hours=2)
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
 
 def get_current_user(token: str):
     try:
@@ -98,38 +81,30 @@ def get_current_user(token: str):
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-
-
 @app.get("/", response_class=HTMLResponse)
 def signup_page(request: Request):
     return templates.TemplateResponse("signup.html", {"request": request})
-
 
 @app.get("/login-page", response_class=HTMLResponse)
 def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
-
 @app.get("/employee", response_class=HTMLResponse)
 def employee_page(request: Request, token: str):
     return templates.TemplateResponse("employee.html", {"request": request, "token": token})
-
 
 @app.get("/manager", response_class=HTMLResponse)
 def manager_page(request: Request, token: str):
     return templates.TemplateResponse("manager.html", {"request": request, "token": token})
 
-
 @app.get("/admin", response_class=HTMLResponse)
 def admin_page(request: Request, token: str):
     return templates.TemplateResponse("admin.html", {"request": request, "token": token})
 
-
-
 @app.post("/signup")
 def signup(
     username: str = Form(...),
-    password: str = Form(...),
+    password: str = Form(...), 
     role: str = Form(...),
     db: Session = Depends(get_db)
 ):
@@ -143,19 +118,38 @@ def signup(
     )
     db.add(user)
     db.commit()
+
     return RedirectResponse("/login-page", status_code=303)
 
 
 @app.post("/login")
 def login(
     username: str = Form(...),
-    password: str = Form(...),
+    password: str = Form(...),  
     db: Session = Depends(get_db)
 ):
     user = db.query(User).filter(User.username == username).first()
 
-    if not user or not verify_password(password, user.password):
+    if not user:
         raise HTTPException(status_code=401, detail="Invalid login")
+
+    stored_password = user.password
+
+    
+    if stored_password.startswith("$"):
+        if not verify_password(password, stored_password):
+            raise HTTPException(status_code=401, detail="Invalid login")
+
+    else:
+       
+        old_sha = hashlib.sha256(stored_password.encode()).hexdigest()
+
+        if old_sha != password:
+            raise HTTPException(status_code=401, detail="Invalid login")
+
+    
+        user.password = hash_password(password)
+        db.commit()
 
     token = create_token({"username": user.username, "role": user.role})
 
@@ -166,8 +160,6 @@ def login(
     }
 
     return RedirectResponse(redirect_map.get(user.role, "/login-page"), status_code=303)
-
-
 
 @app.post("/apply-leave")
 def apply_leave(
@@ -195,16 +187,12 @@ def apply_leave(
     db.commit()
     return {"message": "Leave applied successfully"}
 
-
-
 @app.get("/leaves/")
 def get_leaves(token: str = Query(...), db: Session = Depends(get_db)):
     user = get_current_user(token)
     if user["role"] not in ["manager", "admin"]:
         raise HTTPException(status_code=403, detail="Access denied")
     return db.query(Leave).all()
-
-
 
 @app.post("/update/{leave_id}")
 def update_leave(
@@ -227,8 +215,6 @@ def update_leave(
     leave.status = "approved" if action == "approve" else "rejected"
     db.commit()
     return {"message": f"Leave {leave.status}"}
-
-
 
 @app.get("/health")
 def health():
