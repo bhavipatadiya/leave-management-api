@@ -124,7 +124,7 @@ async function loadLeaves(){
         let actionButtons = "";
         const status = l.status.toLowerCase();
 
-        // ✅ Approved → only Reject
+      
         if(status === "approved"){
             actionButtons = `
                 <button class="reject" onclick="this.disabled=true; update(${l.id}, 'reject')">
@@ -133,7 +133,7 @@ async function loadLeaves(){
             `;
         }
 
-        // ❌ Rejected → only Approve
+      
         else if(status === "rejected"){
             actionButtons = `
                 <button class="approve" onclick="this.disabled=true; update(${l.id}, 'approve')">
@@ -142,7 +142,7 @@ async function loadLeaves(){
             `;
         }
 
-        // ⏳ Pending → both
+        
         else {
             actionButtons = `
                 <button class="approve" onclick="this.disabled=true; update(${l.id}, 'approve')">
