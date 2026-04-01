@@ -12,7 +12,6 @@ body {
     align-items: flex-start;
 }
 
-
 .container {
     background: white;
     padding: 20px;
@@ -20,7 +19,6 @@ body {
     width: 800px;
     margin-top: 50px;
 }
-
 
 input, button {
     width: 100%;
@@ -56,12 +54,12 @@ th {
     color: white;
 }
 
-
 .approve {
     background: green;
     color: white;
     padding: 5px;
     margin: 2px;
+    cursor: pointer;
 }
 
 .reject {
@@ -69,6 +67,7 @@ th {
     color: white;
     padding: 5px;
     margin: 2px;
+    cursor: pointer;
 }
 </style>
 </head>
@@ -124,31 +123,27 @@ async function loadLeaves(){
         let actionButtons = "";
         const status = l.status.toLowerCase();
 
-      
+        
         if(status === "approved"){
             actionButtons = `
-                <button class="reject" onclick="this.disabled=true; update(${l.id}, 'reject')">
+                <button class="reject" onclick="update(${l.id}, 'reject')">
                     Reject
                 </button>
             `;
         }
-
-      
         else if(status === "rejected"){
             actionButtons = `
-                <button class="approve" onclick="this.disabled=true; update(${l.id}, 'approve')">
+                <button class="approve" onclick="update(${l.id}, 'approve')">
                     Approve
                 </button>
             `;
         }
-
-        
         else {
             actionButtons = `
-                <button class="approve" onclick="this.disabled=true; update(${l.id}, 'approve')">
+                <button class="approve" onclick="update(${l.id}, 'approve')">
                     Approve
                 </button>
-                <button class="reject" onclick="this.disabled=true; update(${l.id}, 'reject')">
+                <button class="reject" onclick="update(${l.id}, 'reject')">
                     Reject
                 </button>
             `;
@@ -172,24 +167,42 @@ async function loadLeaves(){
     document.getElementById("data").innerHTML = html;
 }
 
+
 async function update(id, action){
 
-    const token = document.getElementById("token").value;
+    const token = document.getElementById("token").value.trim();
+
+    if(!token){
+        alert("Token missing");
+        return;
+    }
 
     const formData = new FormData();
     formData.append("action", action);
     formData.append("token", token);
 
-    const res = await fetch(`/update/${id}`, {
-        method: "POST",
-        body: formData
-    });
+    try{
+        const res = await fetch(`/update/${id}`, {
+            method: "POST",
+            body: formData
+        });
 
-    const data = await res.json();
+        const data = await res.json();
 
-    alert(data.message || "Updated");
+        if(!res.ok){
+            alert(data.detail || "Error updating");
+            return;
+        }
 
-    loadLeaves(); 
+      
+        alert(data.message);
+
+     
+        loadLeaves();
+
+    } catch(err){
+        alert("Network error");
+    }
 }
 
 function goBack(){

@@ -13,6 +13,7 @@ import os
 import hashlib
 from dotenv import load_dotenv
 
+
 load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY", "mysecretkey")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
@@ -29,11 +30,13 @@ static_path = os.path.join(BASE_DIR, "static")
 if os.path.exists(static_path):
     app.mount("/static", StaticFiles(directory=static_path), name="static")
 
+
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+
 
 class User(Base):
     __tablename__ = "users"
@@ -53,6 +56,7 @@ class Leave(Base):
     status = Column(String, default="pending")
     created_at = Column(DateTime, default=datetime.utcnow)
 
+
 @app.on_event("startup")
 def on_startup():
     Base.metadata.create_all(bind=engine)
@@ -63,6 +67,7 @@ def get_db():
         yield db
     finally:
         db.close()
+
 
 def hash_password(password: str):
     return pwd_context.hash(password)
@@ -80,6 +85,7 @@ def get_current_user(token: str):
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
+
 
 @app.get("/", response_class=HTMLResponse)
 def signup_page(request: Request):
@@ -101,10 +107,11 @@ def manager_page(request: Request, token: str):
 def admin_page(request: Request, token: str):
     return templates.TemplateResponse("admin.html", {"request": request, "token": token})
 
+
 @app.post("/signup")
 def signup(
     username: str = Form(...),
-    password: str = Form(...), 
+    password: str = Form(...),
     role: str = Form(...),
     db: Session = Depends(get_db)
 ):
@@ -125,7 +132,7 @@ def signup(
 @app.post("/login")
 def login(
     username: str = Form(...),
-    password: str = Form(...),  
+    password: str = Form(...),
     db: Session = Depends(get_db)
 ):
     user = db.query(User).filter(User.username == username).first()
@@ -135,19 +142,19 @@ def login(
 
     stored_password = user.password
 
-    
+
     if stored_password.startswith("$"):
         if not verify_password(password, stored_password):
             raise HTTPException(status_code=401, detail="Invalid login")
 
+
     else:
-       
         old_sha = hashlib.sha256(stored_password.encode()).hexdigest()
 
         if old_sha != password:
             raise HTTPException(status_code=401, detail="Invalid login")
 
-    
+        # upgrade
         user.password = hash_password(password)
         db.commit()
 
@@ -160,6 +167,7 @@ def login(
     }
 
     return RedirectResponse(redirect_map.get(user.role, "/login-page"), status_code=303)
+
 
 @app.post("/apply-leave")
 def apply_leave(
@@ -185,14 +193,19 @@ def apply_leave(
     )
     db.add(leave)
     db.commit()
+
     return {"message": "Leave applied successfully"}
+
 
 @app.get("/leaves/")
 def get_leaves(token: str = Query(...), db: Session = Depends(get_db)):
     user = get_current_user(token)
+
     if user["role"] not in ["manager", "admin"]:
         raise HTTPException(status_code=403, detail="Access denied")
+
     return db.query(Leave).all()
+
 
 @app.post("/update/{leave_id}")
 def update_leave(
@@ -201,20 +214,31 @@ def update_leave(
     token: str = Form(...),
     db: Session = Depends(get_db)
 ):
+    logging.info(f"Update request → ID: {leave_id}, Action: {action}")
+
     user = get_current_user(token)
+
     if user["role"] != "manager":
         raise HTTPException(status_code=403, detail="Only manager allowed")
 
     leave = db.query(Leave).filter(Leave.id == leave_id).first()
+
     if not leave:
         raise HTTPException(status_code=404, detail="Leave not found")
 
     if action not in ["approve", "reject"]:
         raise HTTPException(status_code=400, detail="Invalid action")
 
+
     leave.status = "approved" if action == "approve" else "rejected"
+
     db.commit()
+    db.refresh(leave) 
+
+    logging.info(f"Leave {leave_id} updated to {leave.status}")
+
     return {"message": f"Leave {leave.status}"}
+
 
 @app.get("/health")
 def health():
